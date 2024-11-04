@@ -20,5 +20,6 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 This frontend application integrates with a backend Express server located at `@backend`. The UI allows users to:
 
+- Get information on when a new commit event has been detected and whether a new release is needed or not.
 - Create and publish releases.
-- List releases on the provided GitHub repository.
+- Client is connected via websockets to the backend.

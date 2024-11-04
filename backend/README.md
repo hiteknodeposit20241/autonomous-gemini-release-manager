@@ -10,10 +10,17 @@ Once the express server is booted the workflow `handleReleaseWorkflow` will be s
 
 ## Features
 
-- Express server setup with TypeScript
+- Express server setup with TypeScript and Websockets
 - GitHub integration for creating releases
+- Google vertex ai and gemini for AI interactions
 - Environment variable configuration for secure token management
-- A long running workflow that will listen to events to either: create or publish a release on provided github repository
+- A long running workflow that will listen to events: new commit, greeting, create release events.
+
+## Github webhook setup
+
+You will need to tunnel your localhost instant, either using ngrok or smee. We recommend using [smee](https://smee.io/). You can follow instructions on their website. Once you have your smee channel id, update the "tunnel" script on the package.json to point to your channel.
+
+You will then set the same smee url as the webhook on your github repository. This can be found in the webhooks section on your github repository settings. Then you can just make a push to your main branch while you have your local instance running and tunneled through smee to get the webhook event.
 
 ## Setup
 
@@ -34,7 +41,9 @@ Once the express server is booted the workflow `handleReleaseWorkflow` will be s
 
    ```
    GITHUB_AUTH_TOKEN=your_github_token_here
-   OPENAI_API_KEY=your_open_ai_token
+   GEMINI_API_KEY=your_gemini_key_here
+   GOOGLE_CLOUD_PROJECT_ID=your_google_cloud_project_id
+   GOOGLE_CLOUD_LOCATION=your_google_cloud_location
    ```
 
 4. Build the TypeScript code:
@@ -60,20 +69,45 @@ Once the express server is booted the workflow `handleReleaseWorkflow` will be s
 
 ## API Endpoints
 
-### `GET /releases/:owner/:repo`
+### WebSocket Endpoint `/events`
 
-- **Path parameters:**
-  - `owner`: GitHub username or organization name.
-  - `repo`: Repository name.
-- **Response:** JSON object containing a list of releases for the specified repository.
+Establishes a WebSocket connection for real-time communication.
 
-### `PUT /publish/:owner/:repo/:id`
+- **Connection:**
 
-- **Path parameters:**
-  - `owner`: GitHub username or organization name.
-  - `repo`: Repository name.
-  - `id`: Release ID to be published.
-- **Response:** JSON object with the published release.
+  ```
+  ws://localhost:8000/events
+  ```
+
+- **Client Messages:**
+
+  1. Greeting Message:
+     ```json
+     {
+       "type": "greeting"
+     }
+     ```
+  2. Create Release Message:
+     ```json
+     {
+       "type": "create-release",
+       "data": "user message here"
+     }
+     ```
+
+- **Server Messages:**
+
+  ```json
+  {
+    "type": "assistant-message",
+    "data": "AI assistant response"
+  }
+  ```
+
+- **Features:**
+  - Automatic ping every 30 seconds to keep connection alive
+  - Error handling and cleanup on disconnect
+  - Broadcast support for multiple clients
 
 ### `POST /webhook`
 
