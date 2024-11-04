@@ -6,7 +6,7 @@ import ReactMarkdown from "react-markdown";
 import { useWebSocket } from "./utils/useWebsocket";
 
 export default function Home() {
-  const { isConnected, events, sendMessage } = useWebSocket(
+  const { isConnected, events, sendMessage, setEvents } = useWebSocket(
     "ws://localhost:8000/events"
   );
 
@@ -63,6 +63,13 @@ export default function Home() {
             onClick={() => {
               if (userMessage) {
                 sendMessage({ type: "create-release", data: userMessage });
+                setEvents((prev) => [
+                  ...prev,
+                  {
+                    type: "user-message",
+                    data: userMessage,
+                  },
+                ]);
                 setUserMessage("");
               }
             }}

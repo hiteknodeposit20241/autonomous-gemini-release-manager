@@ -48,5 +48,6 @@ export const useWebSocket = (url: string) => {
     isConnected,
     events,
     sendMessage,
+    setEvents,
   };
 };
