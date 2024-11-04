@@ -1,17 +1,19 @@
 import { defineEvent } from '@restackio/ai/event';
 
+type Commit = {
+  username: string;
+  message: string;
+  modified: string[];
+};
+
 export type NewCommitEventInput = {
   repository: string;
-  compareUrl: string;
-  author: string;
-  commitMessage: string;
+  branch: string;
+  defaultBranch: string;
+  commits: Commit[];
 };
 
 export type NewCommitEvent = {
-  repository: string;
-  compareUrl: string;
-  author: string;
-  commitMessage: string;
   assistantMessage: string;
 };
 

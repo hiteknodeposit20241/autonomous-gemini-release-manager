@@ -1,2 +1,2 @@
 export * from './sendEventToWorkflow.js';
-export * from './vertexai.js';
+export * from './generateAiContent.js';

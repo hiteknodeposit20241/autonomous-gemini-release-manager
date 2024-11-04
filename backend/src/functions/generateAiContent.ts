@@ -2,16 +2,19 @@ import {
   HarmCategory,
   HarmBlockThreshold,
   VertexAI,
+  Content,
 } from '@google-cloud/vertexai';
 
-export async function vertexGenerateContent({
+export async function generateAiContent({
   userContent,
   systemContent,
   model = 'gemini-1.5-flash-002',
+  chatHistory = [],
 }: {
   userContent: string;
   systemContent?: string;
   model?: string;
+  chatHistory?: Content[];
 }) {
   // Initialize Vertex with your Cloud project and location
   const vertex_ai = new VertexAI({
@@ -45,15 +48,18 @@ export async function vertexGenerateContent({
         threshold: HarmBlockThreshold.BLOCK_NONE,
       },
     ],
+    ...(systemContent ? { systemInstruction: systemContent } : {}),
   });
 
-  const result = await generativeModel.generateContent({
-    contents: [
-      ...(systemContent
-        ? [{ role: 'assistant', parts: [{ text: systemContent }] }]
-        : []),
-      { role: 'user', parts: [{ text: userContent }] },
-    ],
+  const chat = generativeModel.startChat({
+    history: chatHistory,
   });
-  return result.response.candidates?.[0].content.parts?.[0].text;
+
+  const result = await chat.sendMessage(userContent);
+  const history = await chat.getHistory();
+
+  return {
+    response: result.response.candidates?.[0].content.parts?.[0].text,
+    history,
+  };
 }

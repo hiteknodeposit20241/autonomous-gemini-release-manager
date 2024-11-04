@@ -3,7 +3,7 @@ import { dirname, resolve } from 'path';
 import { githubService } from '@restackio/integrations-github';
 
 import { client } from './client.js';
-import { workflowSendEvent, vertexGenerateContent } from './functions/index.js';
+import { workflowSendEvent, generateAiContent } from './functions/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -17,7 +17,7 @@ export async function services() {
         workflowsPath,
         functions: {
           workflowSendEvent,
-          vertexGenerateContent,
+          generateAiContent,
         },
       }),
       githubService({

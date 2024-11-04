@@ -5,18 +5,20 @@ import cors from 'cors';
 
 import { client } from './client.js';
 
-import { createReleaseEvent } from './events/createRelease.js';
+import {
+  CreateReleaseEvent,
+  createReleaseEvent,
+} from './events/createRelease.js';
 import { services } from './services.js';
 import { GreetingEvent, greetingEvent } from './events/greetingEvent.js';
-import { connections, broadcast } from './websockets/utils.js';
 import { WebsocketMessage } from './websockets/types.js';
+import { NewCommitEvent, newCommitEvent } from './events/newCommit.js';
 
 dotenv.config();
 
 const { app } = expressWs(express());
 const PORT = process.env.PORT || 8000;
 
-// Middleware to parse JSON bodies
 app.use(express.json());
 app.use(cors());
 
@@ -26,29 +28,38 @@ app.get('/', (_, res) => {
 
 let handleReleaseWorkflowId: string = 'hello';
 let runId: string = '';
+const connections = new Set<(data: any) => void>();
 
+const broadcast = (eventData: any) => {
+  connections.forEach((sendEvent) => {
+    sendEvent(eventData);
+  });
+};
+
+// webhook endpoint to receive github events
 app.post('/webhook', async (req, res) => {
   console.log('Webhook received:', req.body);
   const data = req.body;
 
   res.status(200).send('Webhook received');
 
-  broadcast({ type: 'push_commit', data });
-
-  await client.sendWorkflowEvent({
+  const result = (await client.sendWorkflowEvent({
     event: {
-      name: createReleaseEvent.name,
+      name: newCommitEvent.name,
       input: {
         repository: data.repository.full_name,
-        branch: data.ref.split('/').pop() || '',
+        branch: data.ref.replace('refs/heads/', ''),
         defaultBranch: data.repository.default_branch,
+        commits: data.commits,
       },
     },
     workflow: {
       workflowId: handleReleaseWorkflowId,
       runId,
     },
-  });
+  })) as NewCommitEvent;
+
+  broadcast({ type: 'assistant-message', data: result.assistantMessage });
 });
 
 // WebSocket endpoint
@@ -65,7 +76,6 @@ app.ws('/events', (ws, req) => {
   // Send events to the client
   const sendEvent = (eventData: any) => {
     if (ws.readyState === ws.OPEN) {
-      console.log('sending stuff to client', eventData);
       ws.send(JSON.stringify(eventData));
     }
   };
@@ -88,6 +98,22 @@ app.ws('/events', (ws, req) => {
           runId,
         },
       })) as GreetingEvent;
+      sendEvent({ type: 'assistant-message', data: result.assistantMessage });
+    }
+
+    if (parsedMsg.type === 'create-release') {
+      const result = (await client.sendWorkflowEvent({
+        event: {
+          name: createReleaseEvent.name,
+          input: {
+            userMessage: parsedMsg.data,
+          },
+        },
+        workflow: {
+          workflowId: handleReleaseWorkflowId,
+          runId,
+        },
+      })) as CreateReleaseEvent;
       sendEvent({ type: 'assistant-message', data: result.assistantMessage });
     }
   });
